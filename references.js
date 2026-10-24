@@ -1,0 +1,24 @@
+'use strict';
+function referenceCards(ministerId){
+ const refs=(corpus.references||[]).filter(r=>r.minister_id===ministerId);
+ if(!refs.length)return '';
+ return `<section class="section"><h2>Références documentaires repérées</h2><p>${refs.filter(r=>r.linked_document_id).length} référence(s) reliée(s) à un texte du corpus ; ${refs.filter(r=>!r.linked_document_id).length} restant à traiter.</p><a class="secondary" href="${route('references',{minister:ministerId})}">Consulter les références et les fonds ↗</a></section>`;
+}
+function importDocumentDetails(d){
+ if(!d.import_batch)return '';
+ return `<section class="note" aria-label="Statut et provenance de l’import"><strong>${e(d.document_status)}</strong><p>Référence : ${e(d.bibliographic_reference)}<br>Publication : ${e(d.publication_date||'Date non renseignée')} · La date de prise de parole est indiquée dans l’en-tête.<br>Institution : ${e(d.institution||'Non renseignée')}</p><p>${e(d.rights?.label||'Conditions de réutilisation à vérifier')} ${d.rights?.url?`<a href="${e(d.rights.url)}" target="_blank" rel="noopener">Conditions de réutilisation ↗</a>`:''}</p><a href="${route('references',{q:d.reference_id})}">Suivi de la référence ${e(d.reference_id)} ↗</a></section>`;
+}
+function referencesPage(params){
+ const refs=corpus.references||[],ministers=corpus.ministers.filter(m=>refs.some(r=>r.minister_id===m.id));
+ const statuses=[...new Set(refs.map(r=>r.status))];
+ main.innerHTML=`<div class="container">${head('Références et fonds à explorer','Des pistes bibliographiques et archivistiques conservées séparément des textes intégrés. Une référence sans transcription ne compte pas comme un discours.','Suivi documentaire')}<p class="note">${refs.length} références suivies · ${refs.filter(r=>r.linked_document_id).length} textes reliés au corpus · ${refs.filter(r=>r.source_kind==='Fonds / recueil').length} fonds ou recueils à dépouiller. Les statuts décrivent la vérification du 24 octobre 2026.</p><form id="reference-filters" class="admin-filters"><input id="reference-query" type="search" aria-label="Rechercher une référence" placeholder="Titre, cote, institution…" value="${e(params.get('q')||'')}"><select id="reference-minister" aria-label="Filtrer les références par ministre"><option value="">Tous les ministres</option>${ministers.map(m=>`<option value="${e(m.id)}" ${params.get('minister')===m.id?'selected':''}>${e(m.name)}</option>`).join('')}</select><select id="reference-status" aria-label="Statut des références"><option value="">Tous les statuts</option>${statuses.map(s=>`<option>${e(s)}</option>`).join('')}</select></form><p id="reference-count" aria-live="polite"></p><div class="table-wrap"><table><thead><tr><th>Référence</th><th>Ministre et dates</th><th>Statut</th><th>Source et suites à donner</th></tr></thead><tbody id="reference-rows"></tbody></table></div></div>`;
+ const update=()=>{
+  const query=norm(document.querySelector('#reference-query').value),minister=document.querySelector('#reference-minister').value,status=document.querySelector('#reference-status').value;
+  const filtered=refs.filter(r=>(!query||norm([r.id,r.title,r.minister,r.bibliographic_reference,r.notes].join(' ')).includes(query))&&(!minister||r.minister_id===minister)&&(!status||r.status===status));
+  document.querySelector('#reference-count').textContent=filtered.length+' référence(s) affichée(s)';
+  document.querySelector('#reference-rows').innerHTML=filtered.map(r=>`<tr><td><strong>${e(r.id)}</strong><br>${e(r.title)}<br><span class="small muted">${e(r.source_kind)} · ${e(r.document_type)}</span></td><td><a href="${route('minister',{id:r.minister_id})}">${e(r.minister)}</a><br>${r.date_kind==='diffusion'?'Diffusion':'Prise de parole'} : ${e(frDate(r.date))}${r.publication_date?`<br>Publication : ${e(frDate(r.publication_date))}`:''}</td><td>${e(r.status)}${r.linked_document_id?`<p><a href="${route('document',{id:r.linked_document_id})}">Lire ${e(r.linked_document_id)} ↗</a></p>`:''}</td><td>${e(r.bibliographic_reference)}<p class="small">${e(r.notes)}</p><a href="${e(r.source_url)}" target="_blank" rel="noopener">Consulter la source ↗</a><br><span class="small muted">URL : ${e(r.url_status)}${r.http_status?' · HTTP '+e(r.http_status):''} · ${e(r.checked_at)}</span></td></tr>`).join('');
+ };
+ document.querySelector('#reference-filters').onsubmit=event=>event.preventDefault();
+ for(const id of ['reference-query','reference-minister','reference-status'])document.querySelector('#'+id).addEventListener('input',update);
+ update();
+}
