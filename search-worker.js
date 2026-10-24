@@ -1,5 +1,5 @@
 'use strict';
-let catalog, lengths, averageLength;
+let catalog, lengths, averageLength, revision;
 const shards = new Map();
 const fields = {minister:'minister',theme:'concepts',place:'places',person:'persons',organization:'organizations',heritage:'heritage_entities',event:'events',type:'document_type'};
 const normalize = value => String(value).normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replaceAll('’',"'");
@@ -7,7 +7,7 @@ const tokens = value => [...new Set(normalize(value).match(/[\p{L}\p{N}]+/gu)||[
 function shardNumber(word){let hash=2166136261;for(const c of word){hash=Math.imul((hash^c.codePointAt(0))>>>0,16777619)>>>0;}return hash&63;}
 async function postings(word){
  const number=shardNumber(word),name=number.toString(16).padStart(2,'0');
- if(!shards.has(number))shards.set(number,fetch(new URL('search/'+name+'.json',self.location)).then(async response=>{if(!response.ok)throw Error('Index de recherche indisponible');return response.json();}));
+ if(!shards.has(number))shards.set(number,fetch(new URL('search/'+name+'.json?v='+encodeURIComponent(revision),self.location),{cache:'no-cache'}).then(async response=>{if(!response.ok)throw Error('Index de recherche indisponible');return response.json();}));
  return (await shards.get(number))[word]||[];
 }
 async function search(params){
@@ -37,7 +37,7 @@ async function search(params){
 }
 self.onmessage=async ({data})=>{
  try{
-  if(data.type==='init'){catalog=data.catalog;lengths=data.lengths;averageLength=data.averageLength;self.postMessage({id:data.id,value:true});return;}
+  if(data.type==='init'){catalog=data.catalog;lengths=data.lengths;averageLength=data.averageLength;revision=data.revision||'static';self.postMessage({id:data.id,value:true});return;}
   self.postMessage({id:data.id,value:await search(data.params)});
  }catch(error){self.postMessage({id:data.id,error:error.message});}
 };

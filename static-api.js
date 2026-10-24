@@ -22,10 +22,10 @@ window.PDMStatic=(()=>{
  async function ready(){
   if(!workerReady)workerReady=(async()=>{
    const catalog=await read('data/catalog.json');
-   worker=new Worker(new URL('search-worker.js',root));
+   worker=new Worker(new URL('search-worker.js?v='+encodeURIComponent(catalog.publication.revision||'static'),root));
    worker.onmessage=({data})=>{const task=pending.get(data.id);if(!task)return;pending.delete(data.id);data.error?task.reject(Error(data.error)):task.resolve(data.value);};
    worker.onerror=()=>{for(const task of pending.values())task.reject(Error('Le moteur de recherche n’a pas pu démarrer.'));pending.clear();};
-   await call({type:'init',catalog:{documents:catalog.documents},lengths:catalog.search.lengths,averageLength:catalog.search.averageLength});
+   await call({type:'init',catalog:{documents:catalog.documents},lengths:catalog.search.lengths,averageLength:catalog.search.averageLength,revision:catalog.publication.revision});
   })();
   return workerReady;
  }
