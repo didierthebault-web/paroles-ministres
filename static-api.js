@@ -6,7 +6,7 @@ window.PDMStatic=(()=>{
  const normalize=value=>String(value).normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replaceAll('’',"'");
  async function read(path){
   if(location.protocol==='file:')throw Error('Cette version doit être ouverte depuis un hébergement web ou le serveur de prévisualisation, pas par double-clic sur index.html.');
-  if(!jsonCache.has(path))jsonCache.set(path,fetch(new URL(path,root)).then(async response=>{
+  if(!jsonCache.has(path))jsonCache.set(path,fetch(new URL(path,root),{cache:'no-cache'}).then(async response=>{
    if(!response.ok)throw Error('Fichier indisponible : '+path);
    const value=await response.json();
    if(path==='data/catalog.json'){
