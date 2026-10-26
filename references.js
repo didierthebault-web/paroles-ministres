@@ -6,6 +6,8 @@ function referenceCards(ministerId){
 }
 function importDocumentDetails(d){
  if(!d.import_batch)return '';
+ if(d.import_batch==='local-interviews-20261026')return `<section class="note" aria-label="Statut et provenance de l’archive"><strong>${e(d.document_status)}</strong><p>Archive : ${e(d.source_collection)}<br>${d.date_kind==='diffusion'?'Date de diffusion':'Date de publication'} : ${e(frDate(d.date))}${d.date_kind==='diffusion'?' · Date d’enregistrement non établie':''}<br>${d.medium?'Média : '+e(d.medium)+'<br>':''}${d.press_reference?'Référence de transcription : '+e(d.press_reference):''}</p><p>${e(d.scope_note)}</p><p>${e(d.rights?.label)}</p></section>`;
+
  return `<section class="note" aria-label="Statut et provenance de l’import"><strong>${e(d.document_status)}</strong><p>Référence : ${e(d.bibliographic_reference)}<br>Publication : ${e(d.publication_date||'Date non renseignée')} · La date de prise de parole est indiquée dans l’en-tête.<br>Institution : ${e(d.institution||'Non renseignée')}</p><p>${e(d.rights?.label||'Conditions de réutilisation à vérifier')} ${d.rights?.url?`<a href="${e(d.rights.url)}" target="_blank" rel="noopener">Conditions de réutilisation ↗</a>`:''}</p><a href="${route('references',{q:d.reference_id})}">Suivi de la référence ${e(d.reference_id)} ↗</a></section>`;
 }
 function referencesPage(params){
@@ -22,3 +24,5 @@ function referencesPage(params){
  for(const id of ['reference-query','reference-minister','reference-status'])document.querySelector('#'+id).addEventListener('input',update);
  update();
 }
+
+function publicAccessNote(){const restricted=corpus.documents.filter(d=>d.public_access==='metadata_only').length;return restricted?`<p class="note">${corpus.documents.length} notices documentaires : ${corpus.documents.length-restricted} textes consultables en ligne et ${restricted} notices de transcriptions médiatiques dont le texte intégral reste dans la copie locale, en attente de vérification des droits.</p>`:'';}

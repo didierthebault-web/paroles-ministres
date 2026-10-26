@@ -31,13 +31,17 @@ window.PDMStatic=(()=>{
  }
  async function fullDocument(id){
   if(!/^PDM-\d+$/.test(id))throw Error('Identifiant de notice invalide');
-  if(!documentCache.has(id))documentCache.set(id,read('data/documents/'+id+'.json'));
+  if(!documentCache.has(id))documentCache.set(id,(async()=>{
+   const catalog=await read('data/catalog.json'),record=catalog.documents.find(d=>d.id===id);
+   if(!record)throw Error('Notice inconnue');
+   return record.data_file?(await read(record.data_file))[id]:read('data/documents/'+id+'.json');
+  })());
   return documentCache.get(id);
  }
  async function snippet(record,query){
   const words=normalize(query).match(/[\p{L}\p{N}]+/gu)||[];
   if(!words.length)return record.excerpt;
-  if(!textCache.has(record.id))textCache.set(record.id,read('data/texts/'+record.id+'.json'));
+  if(!textCache.has(record.id))textCache.set(record.id,record.data_file?fullDocument(record.id).then(d=>d.text):read('data/texts/'+record.id+'.json'));
   const text=await textCache.get(record.id),normalized=normalize(text);
   let start=-1;for(const word of words){const position=normalized.indexOf(word);if(position>=0&&(start<0||position<start))start=position;}
   // Certaines requêtes portent uniquement sur la notice, sans occurrence dans la transcription.
